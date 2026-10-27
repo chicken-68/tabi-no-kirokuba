@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>旅の記録場</title>
+<script>
+document.documentElement.dataset.mode = localStorage.getItem('mode') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+function showErr(t) {
+  var d = document.getElementById('err');
+  if (!d) { d = document.createElement('pre'); d.id = 'err'; d.style.cssText = 'white-space:pre-wrap;color:#f66;font:12px/1.5 monospace;padding:12px;margin:0'; document.body.insertBefore(d, document.body.firstChild); }
+  d.textContent += t + '\n';
+}
+window.addEventListener('error', function (e) { showErr('エラー: ' + e.message + (e.filename ? ' [' + e.filename.split('/').pop() + ':' + e.lineno + ']' : '')); });
+window.addEventListener('unhandledrejection', function (e) { showErr('エラー: ' + (e.reason && e.reason.message || e.reason)); });
+</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="root"><p class="msg" id="boot">起動中…</p></div>
+<script src="api.js"></script>
+<script>
+// Koderのサーバーは .js に Content-Type を付けないため、モジュールをそのまま読めない。
+// 一度テキストとして取得し、正しい形式の Blob にして読み込む。
+(async function () {
+  var cache = {};
+  async function load(path) {
+    if (cache[path]) return cache[path];
+    var res = await fetch(path);
+    if (!res.ok) throw new Error(path + ' を取得できません (' + res.status + ')');
+    var code = await res.text();
+    var deps = [];
+    code.replace(/(?:from|import)\s+'(\.\/[^']+)'/g, function (_, d) { deps.push(d); });
+    for (var i = 0; i < deps.length; i++) {
+      var url = await load(deps[i].slice(2));
+      code = code.split("'" + deps[i] + "'").join("'" + url + "'");
+    }
+    cache[path] = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+    return cache[path];
+  }
+  try { await import(await load('main.js')); }
+  catch (e) { showErr('読み込みエラー: ' + (e && e.message || e)); }
+})();
+</script>
+<script>
+setTimeout(function () {
+  var b = document.getElementById('boot');
+  if (b) b.textContent = '起動できませんでした。通信状況と、api.jsの1行目を確認してください。';
+}, 8000);
+</script>
+</body>
+</html>
