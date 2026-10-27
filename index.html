@@ -18,7 +18,7 @@ function showErr(t) {
   if (!d) { d = document.createElement('pre'); d.id = 'err'; d.style.cssText = 'white-space:pre-wrap;color:#f66;font:12px/1.5 monospace;padding:12px;margin:0'; document.body.insertBefore(d, document.body.firstChild); }
   d.textContent += t + '\n';
 }
-window.addEventListener('error', function (e) { showErr('エラー: ' + e.message + (e.filename ? ' [' + e.filename.split('/').pop() + ':' + e.lineno + ']' : '')); });
+window.addEventListener('error', function (e) { if (e.message === 'Script error.' && !e.filename) { console.warn('Script error (詳細なし)'); return; } showErr('エラー: ' + e.message + (e.filename ? ' [' + e.filename.split('/').pop() + ':' + e.lineno + ']' : '')); });
 window.addEventListener('unhandledrejection', function (e) { showErr('エラー: ' + (e.reason && e.reason.message || e.reason)); });
 </script>
 <link rel="stylesheet" href="styles.css">
